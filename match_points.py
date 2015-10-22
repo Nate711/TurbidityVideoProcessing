@@ -63,6 +63,7 @@ def drawLines(img1,img2,lines,pts1,pts2):
 		
 		x1,y1 = map(int, [c, -(r[2]+r[0]*c)/r[1] ])
 
+		# in place transformatino in CV2
 		cv2.line(img1, (x0,y0), (x1,y1), color,1) # previously img1 = blah
 		
 		cv2.circle(img1,tuple(pt1),5,color,-1)

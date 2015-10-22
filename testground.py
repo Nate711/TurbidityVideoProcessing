@@ -1,6 +1,9 @@
 import numpy as np
-import cv2
+from glob import glob
+K= np.array([[1.14377690e+03,   0.00000000e+00,   9.71017458e+02],
+ [  0.00000000e+00,   1.14128154e+03,   5.18938715e+02],
+ [  0.00000000e+00,  0.00000000e+00,   1.00000000e+00]])
 
-array = [12,23,34]
-strarray = np.char.mod('%d',array)
-print(strarray)
+
+names = glob('calibration_samples/*')
+print names

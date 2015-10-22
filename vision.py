@@ -18,6 +18,9 @@ def readFrames(videoName,FPS,START_TIME,END_TIME):
 
 	while(count < END_FRAME):
 		ret,frame = capture.read()
+		if not ret:
+			print 'No More Frames!'
+			break
 		frames.append(frame)
 		count+= 1
 		print('Capturing Frame ' + str(count))
@@ -34,7 +37,10 @@ def writeFrames(frames,colorSpace,frameNames,pathName,cameraName,displayFrames=T
 	filenameCount = 0
 	for i in xrange(len(frames)):
 		# Convert Image to GrayScale
-		grayFrame = cv2.cvtColor(frames[i],colorSpace)
+		if colorSpace is None:
+			grayFrame = frames[i]
+		else:
+			grayFrame = cv2.cvtColor(frames[i],colorSpace)
 
 		# Determine the path and name for the file 
 		pathFile = pathName + cameraName + '_Frame'+frameNames[i]+'.jpg'
@@ -55,9 +61,9 @@ def writeFrames(frames,colorSpace,frameNames,pathName,cameraName,displayFrames=T
 	cv2.destroyAllWindows()
 
 
-grayFrames, frameTitles = readFrames('Cam1.mp4',30,0,10)
-writeFrames(grayFrames,cv2.COLOR_RGB2GRAY,frameTitles,'Cam1/','Cam1',displayFrames=False)
+grayFrames, frameTitles = readFrames('GOPR0011.MP4',30,0,138)
+writeFrames(grayFrames,None,frameTitles,'Calibration/','Calibration',displayFrames=False)
 
 
-img1 = grayFrames[150]
-img2 = grayFrames[150]
+img1 = grayFrames[5]
+img2 = grayFrames[5]
