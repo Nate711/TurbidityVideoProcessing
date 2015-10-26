@@ -1,3 +1,8 @@
+*.jpg
+*.JPG
+*.mp4
+*.MP4
+*.pyc
 /Cam1.mp4
 /Cam2.mp4
 /Cam1
