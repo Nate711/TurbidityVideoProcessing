@@ -17,8 +17,6 @@ USAGE = '''
 USAGE: calib.py [--save <filename>] [--debug <output path>] [--square_size] [<image mask>]
 '''
 
-
-
 if __name__ == '__main__':
     import sys
     import getopt

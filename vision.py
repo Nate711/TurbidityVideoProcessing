@@ -6,7 +6,11 @@ def readFrames(videoName,FPS,START_TIME,END_TIME):
 
 	START_FRAME = FPS*START_TIME
 
-	END_FRAME = FPS*END_TIME
+	if END_TIME<0:
+		END_FRAME=1000000000
+	else:
+		END_FRAME = FPS*END_TIME
+
 
 	count=0
 	while count < START_FRAME:
@@ -61,8 +65,8 @@ def writeFrames(frames,colorSpace,frameNames,pathName,cameraName,displayFrames=T
 	cv2.destroyAllWindows()
 
 
-grayFrames, frameTitles = readFrames('GOPR0011.MP4',30,0,138)
-writeFrames(grayFrames,None,frameTitles,'Calibration/','Calibration',displayFrames=False)
+grayFrames, frameTitles = readFrames('Cam1.mp4',30,136,-1) #138
+writeFrames(grayFrames,None,frameTitles,'Cam1_Color/','Cam1_Color',displayFrames=False)
 
 
 img1 = grayFrames[5]
