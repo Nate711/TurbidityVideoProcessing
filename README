@@ -1,0 +1,5 @@
+Undist.py: pass in a source directory containing distorted images and the destination directory to save undistorted images in. The script uses the calibration matrices I calculated using the dual hero case with a hero 3. IMPORTANT: only calibrated for 1080p video frames with medium FOV. Will not work with other resolutions and other FOVs.
+
+Calibrate.py: A script I found online that takes in a bunch of images of a standard checkerboard and then spits out the calibration matrix. Saves images with traced checkerboard into a folder (which must already exist) called “save”
+
+video_frame_capture.py: No arguments, just grabs frames from the video specified inside the code and outputs jpgs for each frame. All directories are hardcoded.
