@@ -24,50 +24,32 @@ def homo2Rect(V):
 def rect2Homo(V):
 	return np.append(V,1)
 
-
-img = cv2.imread('images/1726_p1_s.pgm',cv2.IMREAD_GRAYSCALE)
-cv2.imshow('image',img)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-
-with open('3D_I/P1', 'rU') as f:  # problem with rb
-	reader = csv.reader(f,delimiter=' ')
-
-	camMat = [np.array(row) for row in reader]
-
-	camMat = np.array([map(float,
-				row[np.where(row!='')]) for row in camMat])
-	
-	print 'cam mat\n'+str(camMat)+'\n'
-	K,R,t = factor(camMat)
-
-	#override R
-	#R = np.array([[1,0,0],[0,1,0],[0,0,1]])
-	R = np.array([[1,0,0],[0,-.5,.866],[0,.866,0.5]])
-
-	#t[0]=0;t[1]=0
-
-	print 'factorization (k,r,t)\n' + str((K,R,t)) + '\n'
-
-	# Test overriding camera matrix
-	'''
-	# ok overwrite R and t,K to see wth is going on, looks like it is working
-	t = np.array([[0],[0],[4]])
-	R = np.array([[.5,.866,0],[.866,-.5,0],[0,0,1]])
-	#R = np.array([[1,0,0],[0,1,0],[0,0,1]])
-	Rt = np.concatenate((R,t),1)
+def constructCameraMatrix(K,R,t):
+	Rt = np.concatenate((R,t.reshape(3,1)),1)
 	camMat = np.dot(K,Rt)
-	'''
+	return camMat
 
-	'''# not sure if the K from the factorization is good or not
-	K = np.eye(3)
-	K[0,0] = 100
-	K[1,1] = 100
-	'''
+def readCameraMatrix(filename):
+	with open(filename,'rU') as f:
+		reader = csv.reader(f,delimiter=' ')
 
-	(xi,yi,wi) = rect2Homo([20,150]).reshape(3,1) # is there a problem with making this a column vector?
-	print 'image coordinates:\n' + str((xi,yi,wi)) + '\n'
+		camMat = [np.array(row) for row in reader]
 
+		camMat = np.array([map(float,
+					row[np.where(row!='')]) for row in camMat])
+
+		return camMat
+
+def transformationMatrixRt(R,t):
+	trans = np.concatenate((R,t.reshape(3,1)),1)
+	#print trans
+	trans = np.concatenate((trans,np.array([[0,0,0,1]])),axis=0)
+
+	return trans
+
+def groundCoordinates((xi,yi), K,R,t):
+	wi = 1
+	#print 'image coordinates:\n' + str((xi,yi,wi)) + '\n'
 	invK = np.linalg.inv(K)
 
 	#print 'image frame coordinates: \n' + str(xcyczc)
@@ -79,47 +61,41 @@ with open('3D_I/P1', 'rU') as f:  # problem with rb
 	fx,fy = K[0,0],K[1,1]
 
 	zc = -C[2] / (R[0,2]*(xi-cx)/fx + R[1,2]*(yi-cy)/fy + R[2,2])
-	print 'zc: \n {} \n'.format(zc)
 	xcyczc = zc*np.dot(invK,np.array([xi,yi,wi]))
-	
-	print 'xycyzc\n {} \n'.format(xcyczc)
 
-	print 'image coordinates\n' + str(np.around(homo2Rect(np.dot(K,xcyczc)),2)) + '\n'
+	#print 'xycyzc\n {} \n'.format(xcyczc)
+
+	#print 'reverse 3d image coordinates to get pixel coordinates\n' + str(np.around(homo2Rect(np.dot(K,xcyczc)),2)) + '\n'
 
 	xcyczcwc = rect2Homo(xcyczc)
-	#print 'xcyczcwc\n' + str(np.around(xcyczcwc,2)) + '\n'
-	
-	negRTranst = -np.dot(R.T,t)
 
-	transformation = np.zeros((4,4))
-	transformation[0:3,0:3] = R.T
-	transformation[0:3,3] = negRTranst
-	transformation[3,:] = [0,0,0,1]
-	#print transformation
+	inverseTransformationMatrix= np.linalg.inv(transformationMatrixRt(R,t))
+	xyzw = np.dot(inverseTransformationMatrix,xcyczcwc)
+	#print 'world coordinates (x,y,z)\n' + str(np.around(homo2Rect(xyzw))) + '\n'
 
-	xyzw = np.dot(transformation,xcyczcwc)
+	return xyzw
 
-	# normalize xyzw
-	xyz = homo2Rect(xyzw)
-	print 'world coordinates (x,y,z)\n' + str(np.around(xyz)) + '\n'
+img = cv2.imread('images/1726_p1_s.pgm',cv2.IMREAD_GRAYSCALE)
+cv2.imshow('image',img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
-	Rt = np.concatenate((R,t.reshape(3,1)),1)
-	camMat = np.dot(K,Rt)
+camMat = readCameraMatrix('3D_I/P1')
+#print 'cam mat\n'+str(camMat)+'\n'
+K,R,t = factor(camMat)
 
-	xiyi = homo2Rect(np.dot(camMat,xyzw))
-	print 'image coordinates\n' + str(np.around(xiyi,2)) + '\n'
+#print 'factorization (k,r,t)\n' + str((K,R,t)) + '\n'
 
-	print 'reconstructed camMat\n' + str(camMat) # gets the wrong t value
+xyzw = groundCoordinates((0,0),K,R,t)
+print 'world coordinates (x,y,z)\n' + str(np.around(homo2Rect(xyzw))) + '\n'
 
-	#print 'refactored camMat \n {} \n'.format(factor(camMat))
+# reverse the process to make sure everything is working
+camMat = constructCameraMatrix(K,R,t)
+xiyi = homo2Rect(np.dot(camMat,xyzw))
+print 'image coordinates\n' + str(np.around(xiyi,2)) + '\n'
+#print 'reconstructed camMat\n' + str(camMat) # gets the wrong t value
 
 # summary of problem:
 ''' 
-given P# files not working out, image->world-> image is broken : last image coors incorrect
-K is not the problem
-R is ok I think (image coordinates slighlty off in reconstruction for some reason, maybe error in camera matrix? but it's like 4%)
-only thing is t left
-t is totally screwed up
-only works if tx and ty = 0
-somehow K*Rt messes up tx and ty
+I think everything is working??
 '''

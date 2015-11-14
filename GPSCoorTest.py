@@ -22,7 +22,7 @@ def homo2Rect(V):
 def rect2Homo(V):
 	return np.append(V,1)
 
-with open('3D_I/P3', 'rU') as f:  # problem with rb
+with open('3D_I/P1', 'rU') as f:  # problem with rb
 	reader = csv.reader(f,delimiter=' ')
 
 	camMat = [np.array(row) for row in reader]
@@ -66,19 +66,20 @@ with open('3D_I/P3', 'rU') as f:  # problem with rb
 	'''
 
 	r1r2t = np.array([R[0],R[1],t])
-	r1r2tPrime = np.linalg.inv(r1r2t)
+	r1r2tPrime = np.linalg.inv(r1r2t) # this is probably wrong!
 
 	invK = np.linalg.inv(K)
 	#print 'invK\n' + str(invK) + '\n'
 
 	#print 'r1r2tPrime\n' + str(r1r2tPrime) + '\n'
 
-	xiyiwi = rect2Homo([100,200]) # is there a problem with making this a column vector?
+	xiyiwi = rect2Homo([0,00]) # is there a problem with making this a column vector?
 
 	print 'image coordinates:\n' + str(xiyiwi) + '\n'
 
 	# (r1r2t^-1) dot invk dot xiyiwi then add z=0
 	xyw = np.dot(r1r2tPrime,np.dot(invK,xiyiwi))
+	
 	xyzw = np.insert(xyw,2,0)
 
 	# normalize xyzw
@@ -92,7 +93,7 @@ with open('3D_I/P3', 'rU') as f:  # problem with rb
 	xiyi = homo2Rect(xiyiwi)
 	print 'image coordinates\n' + str(xiyi)
 
-	print camMat # gets the wrong t value
+	print 'reconstructed camMat\n' + str(camMat) # gets the wrong t value
 
 # summary of problem:
 ''' 
