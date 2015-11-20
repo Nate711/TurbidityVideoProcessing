@@ -5,5 +5,10 @@ K= np.array([[1.14377690e+03,   0.00000000e+00,   9.71017458e+02],
  [  0.00000000e+00,  0.00000000e+00,   1.00000000e+00]])
 
 
-names = glob('calibration_samples/*')
-print names
+#names = glob('calibration_samples/*')
+#print names
+
+def hello(a,b,c):
+	print a+b+c
+
+hello(2,c=1,b=10)
