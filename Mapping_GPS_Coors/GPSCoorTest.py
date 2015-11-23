@@ -4,6 +4,10 @@ from scipy import linalg
 import cv2
 import math
 
+'''
+This method factors a given camera matrix P into its factors K (intrinsic),
+R (world axes in cam ref frame), and t (world center in camera ref frame)
+'''
 def factor(P):
     K,R = linalg.rq(P[:,:3])
     T = np.diag(np.sign(np.diag(K)))
@@ -15,21 +19,29 @@ def factor(P):
     t = np.dot(linalg.inv(K),P[:,3]) # this gives t not C
     return K,R,t
 
-def rq(A):
-    Q,R = np.linalg.qr(np.flipud(A).T)
-    R = np.flipud(R.T)
-    Q=Q.T
-    return R[:,::-1],Q[::-1,:]
+'''
+Converts homogeneous coordinates into rectangular coordinates
+'''
 def homo2Rect(V):
     return V[:-1]/V[-1]
+
+'''
+Converts rectangular coordinates into homogeneous coordinates with w=1
+'''
 def rect2Homo(V):
     return np.append(V,1)
 
+'''
+Constructs a camera matrix P from K, R, and t
+'''
 def constructCameraMatrix(K,R,t):
     Rt = np.concatenate((R,t.reshape(3,1)),1)
     camMat = np.dot(K,Rt)
     return camMat
 
+'''
+Reads a camera matrix from a given file
+'''
 def readCameraMatrix(filename):
     with open(filename,'rU') as f:
         reader = csv.reader(f,delimiter=' ')
@@ -41,6 +53,9 @@ def readCameraMatrix(filename):
 
         return camMat
 
+'''
+Returns the transformation matrix corresponding to the given R and t
+'''
 def transformationMatrixRt(R,t):
     trans = np.concatenate((R,t.reshape(3,1)),1)
     #print trans
@@ -48,6 +63,9 @@ def transformationMatrixRt(R,t):
 
     return trans
 
+'''
+The important function! returns the world coordinates of an image pixel given the camera's KRt
+'''
 def groundCoordinates((xi,yi), K,R,t):
     wi = 1
     #print 'image coordinates:\n' + str((xi,yi,wi)) + '\n'
@@ -81,12 +99,15 @@ def groundCoordinates((xi,yi), K,R,t):
 
     return xyzw
 
-def imageCoordinates((x,y,z,w), camMat):
-    return np.dot(camMat,[x,y,z,w])
-
+'''
+Returns the image coordinates of a given world coordinate
+'''
 def imageCoordinates(xyzw, camMat):
     return np.dot(camMat,xyzw)
 
+'''
+Draws lines parallel to world x and y onto an image given the img and camera matrix
+'''
 def drawGPSGrid(img,camMat):
     #img = np.array(img,dtype='uint8')
     gmin,gmax = -500,500
@@ -109,21 +130,29 @@ def drawGPSGrid(img,camMat):
     #(x0,y0) = np.array(homo2Rect(imageCoordinates((25,25,0,1),camMat)),dtype='int')
     #cv2.circle(img,(x0,y0),25,(0,0,0),thickness=-1,lineType=cv2.CV_AA)
 
-def latLong(latlong,dr):
+'''
+Returns the latitude and longitude of a point in world coordinates dr using the set point latlong
+'''
+def latLong(referencePt, dr):
     rho = 6371000.0 # 6371km = radius of earth
     dlat = dr[1] / rho
-    dlong = dr[0] / (rho*math.cos(latlong[0]*math.pi/180))
+    dlong = dr[0] / (rho * math.cos(referencePt[0] * math.pi / 180))
 
-    return (latlong[0]+dlat, latlong[1]+dlong)
+    return (referencePt[0] + dlat, referencePt[1] + dlong)
 
+'''
+Draws a crosshair on an image
+'''
 def drawCrossHair(img, center, size=10, color=(0,0,0),thickness=1): # center in (x,y) format
     cv2.line(img,(center[0] - size,center[1]-size), (center[0]+size,center[1]+size),color,thickness,lineType=cv2.CV_AA)
     cv2.line(img,(center[0] + size,center[1]-size), (center[0]-size,center[1]+size),color,thickness,lineType=cv2.CV_AA)
 
-
+'''
+Cycles through a bunch of different camera poses to verify that the image -> world coordinate algorithm works
+'''
 def verifyPose(anglePerturbation = 0):
     camMat = readCameraMatrix('3D_I/P1')
-    K,R,t = factor(camMat)
+    K, R, t = factor(camMat)
     #print K,R,t
     for theta in np.linspace(0,math.pi/2-.1,15):
 
@@ -181,6 +210,9 @@ def verifyPose(anglePerturbation = 0):
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
+'''
+Kind of a work in progress but the goal is to map GPS coordinates onto an image
+'''
 def gpsCoorImageMask():
     for (img,geom) in zip(imgNamesI,geomNames): # img names and geom names are global vars -- bad!
         camMat = readCameraMatrix('3D_I/' + geom)
@@ -228,7 +260,7 @@ geomNames = ['P1','P2','P3','P4','P5','P6']
 imgNamesI = ['1726_p1_s.pgm','1727_p1_s.pgm','1728_p1_s.pgm','1762_p1_s.pgm','1763_p1_s.pgm','1764_p1_s.pgm']
 imgNamesII = ['1726_p1_s1.pgm','1727_p1_s1.pgm','1728_p1_s1.pgm','1762_p1_s1.pgm','1763_p1_s1.pgm','1764_p1_s1.pgm']
 
-verifyPose(5*math.pi/180)
+verifyPose(anglePerturbation=0)
 
 '''
 # summary of problem:
