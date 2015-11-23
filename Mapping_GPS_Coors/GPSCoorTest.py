@@ -290,24 +290,43 @@ def gpsCoorImageMask():
         cv2.destroyAllWindows()
 
 def transformGroundPhoto(img,P):
-    return cv2.warpPerspective(img,imageToGroundHomography(P),(1000,1000))
+    return cv2.warpPerspective(img,imageToGroundHomography(P),(1200,1000))
 
 geomNames = ['P1','P2','P3','P4','P5','P6']
 imgNamesI = ['1726_p1_s.pgm','1727_p1_s.pgm','1728_p1_s.pgm','1762_p1_s.pgm','1763_p1_s.pgm','1764_p1_s.pgm']
 imgNamesII = ['1726_p1_s1.pgm','1727_p1_s1.pgm','1728_p1_s1.pgm','1762_p1_s1.pgm','1763_p1_s1.pgm','1764_p1_s1.pgm']
 
 P = readCameraMatrix('3D_I/P1')
-R = np.array([[1,0,0],[0,1,0],[0,0,1]])
-K = np.array([[-1000,1,400],[0,-1000,300],[0,0,1]])
-t = np.array([0,0,-1000])
-P = constructCameraMatrix(K,R,t)
+for theta in np.linspace(-math.pi/2,math.pi/2-.1,15):
+#for tx in np.linspace(0,600,1):
+    #theta = 0#math.pi/4
+    phi = 0#math.pi/4
 
-img = cv2.imread('images_I/1726_p1_s.pgm',cv2.IMREAD_GRAYSCALE)
-img2 = transformGroundPhoto(img,P)
-cv2.imshow('hello',img)
-cv2.imshow('bye',img2)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    R1 = np.array([[1,0,0],\
+                   [0,math.cos(phi),-math.sin(phi)],\
+                   [0,math.sin(phi),math.cos(phi)]])
+
+    R2 = np.array([[math.cos(theta),-math.sin(theta),0],\
+                   [math.sin(theta),math.cos(theta),0],\
+                   [0,0,1]])
+
+    R = np.dot(R2,R1)
+
+
+    K = np.array([[-1000,1,-600],[0,-1000,-500],[0,0,1]])
+    t = np.array([400,300,-1000])
+    #print t
+    P = constructCameraMatrix(K,R,t)
+
+    img = cv2.imread('test.jpg',cv2.IMREAD_GRAYSCALE)
+    img2 = transformGroundPhoto(img,P)
+
+    #print 'center {}'.format(imageCoordinates((0,0,0,1),P))
+
+    cv2.imshow('hello',img)
+    cv2.imshow('bye',img2)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 #verifyPose(anglePerturbation=0)
 
