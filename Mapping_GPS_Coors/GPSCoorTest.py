@@ -290,43 +290,67 @@ def gpsCoorImageMask():
         cv2.destroyAllWindows()
 
 def transformGroundPhoto(img,P):
-    return cv2.warpPerspective(img,imageToGroundHomography(P),(1200,1000))
+    #return cv2.warpPerspective(img,groundToImageHomography(P),(1200,1000))
+    return cv2.warpPerspective(img,imageToGroundHomography(P),(3000,3000))
 
 geomNames = ['P1','P2','P3','P4','P5','P6']
 imgNamesI = ['1726_p1_s.pgm','1727_p1_s.pgm','1728_p1_s.pgm','1762_p1_s.pgm','1763_p1_s.pgm','1764_p1_s.pgm']
 imgNamesII = ['1726_p1_s1.pgm','1727_p1_s1.pgm','1728_p1_s1.pgm','1762_p1_s1.pgm','1763_p1_s1.pgm','1764_p1_s1.pgm']
 
-P = readCameraMatrix('3D_I/P1')
-for theta in np.linspace(-math.pi/2,math.pi/2-.1,15):
-#for tx in np.linspace(0,600,1):
-    #theta = 0#math.pi/4
-    phi = 0#math.pi/4
-
-    R1 = np.array([[1,0,0],\
-                   [0,math.cos(phi),-math.sin(phi)],\
-                   [0,math.sin(phi),math.cos(phi)]])
-
-    R2 = np.array([[math.cos(theta),-math.sin(theta),0],\
-                   [math.sin(theta),math.cos(theta),0],\
-                   [0,0,1]])
-
-    R = np.dot(R2,R1)
+#P = readCameraMatrix('3D_I/P1')
 
 
-    K = np.array([[-1000,1,-600],[0,-1000,-500],[0,0,1]])
-    t = np.array([400,300,-1000])
-    #print t
-    P = constructCameraMatrix(K,R,t)
+phi = math.pi/4
+psi = 0
+theta = math.pi/4#math.pi
 
-    img = cv2.imread('test.jpg',cv2.IMREAD_GRAYSCALE)
-    img2 = transformGroundPhoto(img,P)
+R1 = np.array([[1,0,0],\
+               [0,math.cos(phi),math.sin(phi)],\
+               [0,-math.sin(phi),math.cos(phi)]])
 
-    #print 'center {}'.format(imageCoordinates((0,0,0,1),P))
+R2 = np.array([[math.cos(psi),0,-math.sin(psi)],\
+               [0,1,0],\
+               [math.sin(psi),0,math.cos(psi)]])
 
-    cv2.imshow('hello',img)
-    cv2.imshow('bye',img2)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+R3 = np.array([[math.cos(theta),-math.sin(theta),0],\
+               [math.sin(theta),math.cos(theta),0],\
+               [0,0,1]])
+
+R = np.dot(R2,R3)
+R = np.dot(R1,R)
+
+K = np.array([[  1.43231702e+03,   0.00000000e+00,   1.28269633e+03],
+[  0.00000000e+00,   1.43306970e+03,   9.47284290e+02],
+[  0.00000000e+00,   0.00000000e+00,   1.00000000e+00]])
+
+#K = np.array([[-1000,0,500],[0,-1000,500],[0,0,1]])
+
+# world center in camera coordinates
+# these units set the units for everything else. each pixel in the gps image will correspond to one unit (ie mm or m)
+C = np.array([0,0,200])
+t = -np.dot(R,C)
+print 'T (world center in camera coordinates): {}'.format(t)
+#t = np.array([0,0,-1.1])
+
+#t2 = np.array([300,300,1000])
+#t = -np.dot(R,t2)
+P = constructCameraMatrix(K,R,t)
+
+print 'Coordinates of spot in center of image: {}'.format(groundCoordinatesNew((0,0),P))
+
+img = cv2.imread('GroundUD/T45P45_Undist.jpg')
+img2 = transformGroundPhoto(img,P)
+
+# translate the world coor image
+#M = np.float32([[1,0,400],[0,1,300]])
+#img2 = cv2.warpAffine(img2,M,(2560,1920))
+
+#print 'center {}'.format(imageCoordinates((0,0,0,1),P))
+
+#cv2.imshow('hello',img)
+cv2.imshow('bye',img2)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
 #verifyPose(anglePerturbation=0)
 

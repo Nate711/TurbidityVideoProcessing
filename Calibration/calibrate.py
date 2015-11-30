@@ -32,7 +32,7 @@ img_names = glob(img_mask)
 print(img_names)
 
 debug_dir = args.get('--debug')
-square_size = float(args.get('--square_size', 1.0))
+square_size = float(args.get('--square_size', .024)) # default is 24mm
 
 pattern_size = (9, 6)
 pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )

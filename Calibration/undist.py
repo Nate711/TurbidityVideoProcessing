@@ -12,22 +12,54 @@ parser.add_argument('--dest','-d',help='save folder', required=True)
 
 args = parser.parse_args()
 
+# Distortion and intrinsic matrices are hard-coded unfortunately
+
 '''
+###########################################################################
 # calibration parameters from all of my calibration images
+###########################################################################
 K = np.array([[1.14377690e+03,   0.00000000e+00,   9.71017458e+02],
  [  0.00000000e+00,   1.14128154e+03,   5.18938715e+02], #2nd e is 03
  [  0.00000000e+00,  0.00000000e+00,   1.00000000e+00]])
 d = np.array([-0.35194004,  0.22321843, -0.00039513, -0.00041706, -0.07914194]) # just use first two terms (no translation)
 '''
-# calibration parameters from subset of calibration images
 
+###########################################################################
+# calibration parameters from subset of calibration images taken with gopro video
+###########################################################################
+'''
 K = np.array([[  1.14436060e+03,   0.00000000e+00,   9.73815117e+02],
  [  0.00000000e+00,   1.14177584e+03,   5.18330528e+02],
  [  0.00000000e+00,   0.00000000e+00,   1.00000000e+00]])
 d = np.array([-0.35000645,  0.22143909,0,0,0 ]) # just use first two terms (no translation)
+'''
 
+############################################################
+# calibration for gopro picture 5MP @ med Fov
+############################################################
+K = np.array([[  1.53850142e+03,   0.00000000e+00,   1.28395676e+03],
+       [  0.00000000e+00,   1.54030315e+03,   9.47425401e+02],
+       [  0.00000000e+00,   0.00000000e+00,   1.00000000e+00]])
 
-# calibration parameters from sample images
+'''
+d = np.array([ -3.62470089e-01,   2.53967119e-01,  -3.89327856e-04,
+        -3.37785527e-04,  -1.04237201e-01])
+'''
+d = np.array([ -3.62470089e-01,   2.53967119e-01,  -3.89327856e-04,
+        0,  0])
+
+'''
+After calibraiton K:
+
+[[  1.43231702e+03   0.00000000e+00   1.28269633e+03]
+ [  0.00000000e+00   1.43306970e+03   9.47284290e+02]
+ [  0.00000000e+00   0.00000000e+00   1.00000000e+00]]
+ '''
+
+###########################################################################
+# calibration parameters from sample images from salem's blog
+###########################################################################
+
 '''
 K = np.array([[ 611.18390818,    0.,          515.31102633],
  [   0.,          611.06735263,  402.07540928],
@@ -35,10 +67,6 @@ K = np.array([[ 611.18390818,    0.,          515.31102633],
 
 d = np.array([-0.36824155,  0.28485465,0,0,0])#,  0.00079123,  0.00064925, -0.1634569 ])
 '''
-
-
-# read one of your images
-# works well with 
 
 # for sample images
 #imgNames = glob('../calibration_samples_ex/GO*[0-9].JPG')
@@ -55,6 +83,9 @@ saveFolder = 'Cam1_Undist/'
 
 
 relativePath = args.source
+#################################################################
+############### HARD CODE FILE EXT ##############################
+#################################################################
 imgNames = glob(relativePath + '*.jpg')
 saveFolder = args.dest
 
@@ -66,6 +97,7 @@ for name in imgNames:
 	h, w = img.shape[:2]
 	# undistort
 	newcamera, roi = cv2.getOptimalNewCameraMatrix(K, d, (w,h), 0) 
+	print newcamera
 	newimg = cv2.undistort(img, K, d, None, newcamera)
 	
 	# for samples
