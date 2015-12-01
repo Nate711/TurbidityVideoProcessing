@@ -180,7 +180,6 @@ Cycles through a bunch of different camera poses to verify that the image -> wor
 '''
 def verifyPose(anglePerturbation = 0):
     #camMat = readCameraMatrix('3D_I/P1')
-    K, R, t = factorCameraMatrix(camMat)
     #print K,R,t
 
     K = np.array([[-1000,1,400],[0,-1000,300],[0,0,1]])
@@ -289,71 +288,86 @@ def gpsCoorImageMask():
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
+def scaleImageAboutCenterMatrix(img,scale):
+    width = img.shape[1]
+    height = img.shape[0]
+
+    T = np.float32([[1,0,-width/2],[0,1,-height/2],[0,0,1]])
+    S = np.float32([[scale,0,0],[0,scale,0],[0,0,1]])
+    M = np.dot(S,T)
+    NT = np.float32([[1,0,width/2],[0,1,height/2]]) # last matrix should be 2x3
+    M = np.dot(NT,M)
+    return M
+
 def transformGroundPhoto(img,P):
-    #return cv2.warpPerspective(img,groundToImageHomography(P),(1200,1000))
-    return cv2.warpPerspective(img,imageToGroundHomography(P),(3000,3000))
+    #print 'Size of input image: {}'.format(img.shape)
+    height,width = img.shape[0:2]
+    #print height,width
+
+    # get the homography that maps between the image and the world map
+    H = imageToGroundHomography(P)
+
+    # get a translation matrix that shifts the world map image so that the origin is at the center
+    T = np.float32([[1,0,width/2],[0,1,height/2],[0,0,1]])
+    print T
+
+    # compute the new homography so the world center is at the center of the world map image
+    M = np.dot(T,H)
+
+    # warp the image
+    img = cv2.warpPerspective(img,M,(width,height)) # kind of strange you do width,height and not height,width
+
+    return img
+
+def getRotationMatrix3DYPR(yaw,xAngle): # this is incorrect
+    # first rotation
+    yawMat = np.array([[math.cos(yaw),-math.sin(yaw),0],\
+               [math.sin(yaw),math.cos(yaw),0],\
+               [0,0,1]])
+
+    pitchMat = np.array([[1,0,0],\
+               [0,math.cos(xAngle),math.sin(xAngle)],\
+               [0,-math.sin(xAngle),math.cos(xAngle)]])
+
+    R = np.dot(pitchMat,yawMat)
+    return R
 
 geomNames = ['P1','P2','P3','P4','P5','P6']
 imgNamesI = ['1726_p1_s.pgm','1727_p1_s.pgm','1728_p1_s.pgm','1762_p1_s.pgm','1763_p1_s.pgm','1764_p1_s.pgm']
 imgNamesII = ['1726_p1_s1.pgm','1727_p1_s1.pgm','1728_p1_s1.pgm','1762_p1_s1.pgm','1763_p1_s1.pgm','1764_p1_s1.pgm']
-
 #P = readCameraMatrix('3D_I/P1')
 
 
-phi = math.pi/4
-psi = 0
-theta = math.pi/4#math.pi
+img = cv2.imread('GroundUD/T0P60_Undist.jpg')
 
-R1 = np.array([[1,0,0],\
-               [0,math.cos(phi),math.sin(phi)],\
-               [0,-math.sin(phi),math.cos(phi)]])
+resizingFactor = 0.4
+img = cv2.resize(img,(int(img.shape[1]*resizingFactor),int(img.shape[0]*resizingFactor))) # resizing messes up the K matrix b/c it's in pixels
+print img.shape
 
-R2 = np.array([[math.cos(psi),0,-math.sin(psi)],\
-               [0,1,0],\
-               [math.sin(psi),0,math.cos(psi)]])
-
-R3 = np.array([[math.cos(theta),-math.sin(theta),0],\
-               [math.sin(theta),math.cos(theta),0],\
-               [0,0,1]])
-
-R = np.dot(R2,R3)
-R = np.dot(R1,R)
-
+# intrinisic matrix for Go Pro 5MP at MED FOV
 K = np.array([[  1.43231702e+03,   0.00000000e+00,   1.28269633e+03],
 [  0.00000000e+00,   1.43306970e+03,   9.47284290e+02],
 [  0.00000000e+00,   0.00000000e+00,   1.00000000e+00]])
 
-#K = np.array([[-1000,0,500],[0,-1000,500],[0,0,1]])
+K = K*resizingFactor
+
+R = getRotationMatrix3DYPR(0,math.pi/6)
 
 # world center in camera coordinates
 # these units set the units for everything else. each pixel in the gps image will correspond to one unit (ie mm or m)
 C = np.array([0,0,200])
 t = -np.dot(R,C)
 print 'T (world center in camera coordinates): {}'.format(t)
-#t = np.array([0,0,-1.1])
-
-#t2 = np.array([300,300,1000])
-#t = -np.dot(R,t2)
 P = constructCameraMatrix(K,R,t)
-
 print 'Coordinates of spot in center of image: {}'.format(groundCoordinatesNew((0,0),P))
 
-img = cv2.imread('GroundUD/T45P45_Undist.jpg')
 img2 = transformGroundPhoto(img,P)
 
-# translate the world coor image
-#M = np.float32([[1,0,400],[0,1,300]])
-#img2 = cv2.warpAffine(img2,M,(2560,1920))
-
-#print 'center {}'.format(imageCoordinates((0,0,0,1),P))
-
-#cv2.imshow('hello',img)
 cv2.imshow('bye',img2)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 #verifyPose(anglePerturbation=0)
-
 
 '''
 # summary of problem:
