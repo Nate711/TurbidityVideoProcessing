@@ -225,15 +225,21 @@ def drawCrossHair(img, center, size=10, color=(0, 0, 0), thickness=1):  # center
 Cycles through a bunch of different camera poses to verify that the image -> world coordinate algorithm works
 '''
 
-
+def nothing(x):
+    pass
 def verifyPose(anglePerturbation=0):
     # camMat = readCameraMatrix('3D_I/P1')
     # print K,R,t
+    cv2.namedWindow('image')
+    cv2.createTrackbar('bye','image',30,100,nothing)
 
     K = np.array([[-1000, 1, 400], [0, -1000, 300], [0, 0, 1]])
     t = np.array([0, 0, -1000])
 
-    for theta in np.linspace(0, math.pi / 2 - .1, 15):
+    while(1):
+        theta = float(cv2.getTrackbarPos('bye','image'))/100.0 * math.pi
+        phi = theta*.05
+    #for theta in np.linspace(0, math.pi / 2 - .1, 15):
 
         phi = theta * 0.5
 
@@ -288,8 +294,10 @@ def verifyPose(anglePerturbation=0):
                         str(np.around(np.linalg.norm(worldPoint - gpsCalcPerturb), 3)))
 
         cv2.imshow('image', img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        k = cv2.waitKey(1) & 0xFF
+        if k==27:
+            break
+    cv2.destroyAllWindows()
 
 
 '''
@@ -395,7 +403,7 @@ imgNamesII = ['1726_p1_s1.pgm', '1727_p1_s1.pgm', '1728_p1_s1.pgm', '1762_p1_s1.
               '1764_p1_s1.pgm']
 # P = readCameraMatrix('3D_I/P1')
 
-img = cv2.imread('GroundUD/T0P35_Undist.jpg')
+img = cv2.imread('GroundUD/T1P35_Undist.jpg')
 
 # print img.shape
 
@@ -420,12 +428,13 @@ img2 = transformGroundPhoto(img, P)
 
 # resize so i can display it properly on my laptop screen
 img2 = cv2.resize(img2, (1200, 900))
-
+'''
 cv2.imshow('bye', img2)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+'''
 
-# verifyPose(anglePerturbation=0)
+verifyPose(anglePerturbation=0)
 
 '''
 # summary of problem:
