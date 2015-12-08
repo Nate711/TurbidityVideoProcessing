@@ -1,15 +1,18 @@
-import numpy as np
 import csv
-import cv2
 import math
 
-'''
-This method factors a given camera matrix P into its factors K (intrinsic),
-R (world axes in cam ref frame), and t (world center in camera ref frame)
-'''
+import cv2
+import numpy as np
 
 
 def factorCameraMatrix(P):
+    """
+    This method factors a given camera matrix P into its factors K (intrinsic),
+    R (world axes in cam ref frame), and t (world center in camera ref frame)
+
+    :param P:
+    :return:
+    """
     K, R = linalg.rq(P[:, :3])
     T = np.diag(np.sign(np.diag(K)))
     if linalg.det(T) < 0:
@@ -21,50 +24,57 @@ def factorCameraMatrix(P):
     return K, R, t
 
 
-'''
-Normalize homo coordinates
-'''
-
-
 def normHomo(V):
+    """
+    Normalize homo coordinates
+
+    :param V:
+    :return:
+    """
     return V / V[-1]
 
 
-'''
-Converts homogeneous coordinates into rectangular coordinates
-'''
-
-
 def homo2Rect(V):
+    """
+    Converts homogeneous coordinates into rectangular coordinates
+
+    :param V:
+    :return:
+    """
     return V[:-1] / V[-1]
 
 
-'''
-Converts rectangular coordinates into homogeneous coordinates with w=1
-'''
-
-
 def rect2Homo(V):
+    """
+    Converts rectangular coordinates into homogeneous coordinates with w=1
+
+    :param V:
+    :return:
+    """
     return np.append(V, 1)
 
 
-'''
-Constructs a camera matrix P from K, R, and t
-'''
-
-
 def constructCameraMatrix(K, R, t):
+    """
+    Constructs a camera matrix P from K, R, and t
+
+    :param K:
+    :param R:
+    :param t:
+    :return:
+    """
     Rt = np.concatenate((R, t.reshape(3, 1)), 1)
     camMat = np.dot(K, Rt)
     return camMat
 
 
-'''
-Reads a camera matrix from a given file
-'''
-
-
 def readCameraMatrix(filename):
+    """
+    Reads a camera matrix from a given file
+
+    :param filename:
+    :return:
+    """
     with open(filename, 'rU') as f:
         reader = csv.reader(f, delimiter=' ')
 
@@ -76,12 +86,14 @@ def readCameraMatrix(filename):
         return camMat
 
 
-'''
-Returns the transformation matrix corresponding to the given R and t
-'''
-
-
 def transformationMatrixRt(R, t):
+    """
+    Returns the transformation matrix corresponding to the given R and t
+
+    :param R:
+    :param t:
+    :return:
+    """
     trans = np.concatenate((R, t.reshape(3, 1)), 1)
     # print trans
     trans = np.concatenate((trans, np.array([[0, 0, 0, 1]])), axis=0)
@@ -89,12 +101,16 @@ def transformationMatrixRt(R, t):
     return trans
 
 
-'''
-The important function! returns the world coordinates of an image pixel given the camera's KRt
-'''
-
-
 def groundCoordinatesNew(Xi, K, R, t):
+    """
+    The important function! returns the world coordinates of an image pixel given the camera's KRt
+
+    :param Xi:
+    :param K:
+    :param R:
+    :param t:
+    :return:
+    """
     return groundCoordinates(Xi, constructCameraMatrix(K, R, t))
 
 
@@ -108,16 +124,19 @@ def groundCoordinatesNew(Xi, P):
     return normHomo(np.append(groundXY, [0, 1]))
 
 
-'''
-The important function! returns the world coordinates of an image pixel given the camera's KRt.
-This is the OLD algorithm because I wrote a newer more simple one. I can't believe I spent so
-much time on this one when the above one works. It's a little bit reading a 50 page wikipedia
-article to find one sentence when you could have just command-f-ed it. Except this is with
-math and not words.
-'''
-
-
 def groundCoordinates((xi, yi), K, R, t):
+    """
+    The important function! returns the world coordinates of an image pixel given the camera's KRt.
+    This is the OLD algorithm because I wrote a newer more simple one. I can't believe I spent so
+    much time on this one when the above one works. It's a little bit reading a 50 page wikipedia
+    article to find one sentence when you could have just command-f-ed it. Except this is with
+    math and not words.
+
+    :param K:
+    :param R:
+    :param t:
+    :return:
+    """
     wi = 1
     # print 'image coordinates:\n' + str((xi,yi,wi)) + '\n'
     invK = np.linalg.inv(K)
@@ -159,23 +178,25 @@ def groundToImageHomography(P):
     return np.delete(P, 2, 1)
 
 
-'''
-Returns the image coordinates of a given world coordinate. Xw is coordinates in world frame. P is camera matrix.
-'''
-
-
 def imageCoordinates(Xw, P):
+    """
+    Returns the image coordinates of a given world coordinate. Xw is coordinates in world frame. P is camera matrix.
+
+    :param Xw:
+    :param P:
+    :return:
+    """
     return normHomo(np.dot(P, Xw))
 
 
-'''
-Draws lines parallel to world x and y onto an image given the img and camera matrix
-'''
-
-
 def drawRectGrid(img, color=(150, 150, 150), step=10):
-    # img = np.array(img,dtype='uint8')
+    """
+    Draws lines parallel to world x and y onto an image given the img and camera matrix
 
+    :param img:
+    :param color:
+    :param step:
+    """
     xmax = img.shape[1]
     ymax = img.shape[0]
     x = np.arange(start=0, stop=xmax, step=step)
@@ -218,12 +239,13 @@ def drawGPSGrid(img, camMat):
         # cv2.circle(img,(x0,y0),25,(0,0,0),thickness=-1,lineType=cv2.CV_AA)
 
 
-'''
-Returns the latitude and longitude of a point in world coordinates dr using the set point latlong
-'''
-
-
 def latLong(referencePt, dr):
+    """
+    Returns the latitude and longitude of a point in world coordinates dr using the set point latlong
+    :param referencePt:
+    :param dr:
+    :return:
+    """
     rho = 6371000.0  # 6371km = radius of earth
     dlat = dr[1] / rho
     dlong = dr[0] / (rho * math.cos(referencePt[0] * math.pi / 180))
@@ -231,30 +253,28 @@ def latLong(referencePt, dr):
     return (referencePt[0] + dlat, referencePt[1] + dlong)
 
 
-'''
-Draws a crosshair on an image
-'''
-
-
 def drawCrossHair(img, center, size=10, color=(0, 0, 0), thickness=1):  # center in (x,y) format
+    """
+    Draws a crosshair on an image
+
+    :param img:
+    :param center:
+    :param size:
+    :param color:
+    :param thickness:
+    """
     cv2.line(img, (center[0] - size, center[1] - size), (center[0] + size, center[1] + size), color, thickness,
              lineType=cv2.CV_AA)
     cv2.line(img, (center[0] + size, center[1] - size), (center[0] - size, center[1] + size), color, thickness,
              lineType=cv2.CV_AA)
 
 
-'''
-Cycles through a bunch of different camera poses to verify that the image -> world coordinate algorithm works
-'''
-
-
-def nothing(x):
-    pass
-
-
 def verifyPose(anglePerturbation=0):
-    # camMat = readCameraMatrix('3D_I/P1')
-    # print K,R,t
+    """
+    Cycles through a bunch of different camera poses to verify that the image -> world coordinate algorithm works
+
+    :param anglePerturbation:
+    """
     cv2.namedWindow('image')
     cv2.createTrackbar('bye', 'image', 30, 100, nothing)
 
@@ -325,12 +345,11 @@ def verifyPose(anglePerturbation=0):
     cv2.destroyAllWindows()
 
 
-'''
-Kind of a work in progress but the goal is to map GPS coordinates onto an image
-'''
-
-
 def gpsCoorImageMask():
+    """
+    Kind of a work in progress but the goal is to map GPS coordinates onto an image
+
+    """
     for (img, geom) in zip(imgNamesI, geomNames):  # img names and geom names are global vars -- bad!
         camMat = readCameraMatrix('3D_I/' + geom)
 
@@ -419,75 +438,68 @@ def getRotationMatrix3DYPR(yaw, pitch, roll):  # this is incorrect
                          [0, -math.sin(pitch), math.cos(pitch)]])
 
     rollMat = np.array([[math.cos(roll), 0, math.sin(roll)], \
-                       [0, 1, 0], \
-                       [-math.sin(roll), 0, math.cos(roll)]])
+                        [0, 1, 0], \
+                        [-math.sin(roll), 0, math.cos(roll)]])
 
     R = np.dot(pitchMat, yawMat)
     R = np.dot(rollMat, R)
     return R
 
 
+def mapBackyard():
+    # P = readCameraMatrix('3D_I/P1')
+    backyardNames = np.array(['P0T0_5.jpg', 'P0T45.jpg', 'P30T0_5.jpg', 'P31T46.jpg', 'P41T0.jpg', \
+                              'P45T46.jpg', 'P51T180.jpg', 'P56T47.jpg', 'P56T314.jpg'])
+    pitches = np.float32([0, 0, 30, 31, 41, 45, 51, 56, 56])
+    thetas = np.float32([0.5, 45, 0.5, 46, 0, 46, 180, 47, 314])
+
+    images = zip(backyardNames, pitches, thetas)
+
+    # intrinsic for Olympus at 4/3 at 1200 x 900
+    K = np.array([[1.00137397e+03, 0.00000000e+00, 5.84613792e+02],
+                  [0.00000000e+00, 9.99010269e+02, 4.37792216e+02],
+                  [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
+
+    for image in images:
+        yaw = image[2] * math.pi / 180
+        pitch = image[1] * math.pi / 180
+        img = cv2.imread('../Calibration/OlympusUD/{}'.format(image[0]))
+
+        R = getRotationMatrix3DYPR(yaw=yaw, pitch=pitch, roll=0)
+
+        # world center in camera coordinates
+        # these units set the units for everything else. each pixel in the gps image will correspond to one unit (ie mm or m)
+
+        # hard code the camera center to 200 units up so that the ground map fills the screen
+        # (the actual z height will be determined correctly for actual use)
+        # C is the camera center in world frame
+        C = np.array([0, 0, 200])
+        t = -np.dot(R, C)
+        # print 'T (world center in camera coordinates): {}'.format(t)
+        P = constructCameraMatrix(K, R, t)
+        # print 'Coordinates of spot in center of image: {}'.format(groundCoordinatesNew((0, 0), P))
+
+        img2 = transformGroundPhoto(img, P)
+
+        # resize so i can display it properly on my laptop screen
+        img2 = cv2.resize(img2, (800, 600))
+
+        cv2.imshow('bye', img2)
+        cv2.imwrite('backyard/' + image[0][0:-4] + '_M.jpg', img2)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+
 geomNames = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6']
 imgNamesI = ['1726_p1_s.pgm', '1727_p1_s.pgm', '1728_p1_s.pgm', '1762_p1_s.pgm', '1763_p1_s.pgm', '1764_p1_s.pgm']
 imgNamesII = ['1726_p1_s1.pgm', '1727_p1_s1.pgm', '1728_p1_s1.pgm', '1762_p1_s1.pgm', '1763_p1_s1.pgm',
               '1764_p1_s1.pgm']
-# P = readCameraMatrix('3D_I/P1')
-backyardNames = np.array(['P0T0_5.jpg','P0T45.jpg','P30T0_5.jpg','P31T46.jpg','P41T0.jpg',\
-                          'P45T46.jpg','P51T180.jpg','P56T47.jpg','P56T314.jpg'])
-pitches = np.float32([0,0,30,31,41,45,51,56,56])
-thetas = np.float32([0.5,45,0.5,46,0,46,180,47,314])
 
-images = zip(backyardNames,pitches,thetas)
-print images
+# intrinsic matrix for Go Pro 5MP at MED FOV
 
-# img = cv2.imread('GroundUD/T1P35_Undist.jpg')
-
-
-# print img.shape
-
-# intrinisic matrix for Go Pro 5MP at MED FOV
 K = np.array([[1.43231702e+03, 0.00000000e+00, 1.28269633e+03],
               [0.00000000e+00, 1.43306970e+03, 9.47284290e+02],
               [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
-# intrinsic for Olympus at 4/3 at 1200 x 900
-K = np.array([[1.00137397e+03, 0.00000000e+00, 5.84613792e+02],
-              [0.00000000e+00, 9.99010269e+02, 4.37792216e+02],
-              [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
-
-for image in images:
-    yaw = 314 * math.pi / 180
-    pitch = 56* math.pi / 180
-    roll = 0 * math.pi / 180
-
-    print image
-
-    yaw = image[2]* math.pi / 180
-    pitch = image[1]* math.pi / 180
-    img = cv2.imread('../Calibration/OlympusUD/{}'.format(image[0]))
-
-    R = getRotationMatrix3DYPR(yaw=yaw, pitch=pitch, roll=roll)
-
-    # world center in camera coordinates
-    # these units set the units for everything else. each pixel in the gps image will correspond to one unit (ie mm or m)
-    # was using 300
-    C = np.array([0, 0, 200])
-    t = -np.dot(R, C)
-    print 'T (world center in camera coordinates): {}'.format(t)
-    P = constructCameraMatrix(K, R, t)
-    print 'Coordinates of spot in center of image: {}'.format(groundCoordinatesNew((0, 0), P))
-
-    img2 = transformGroundPhoto(img, P)
-
-    # resize so i can display it properly on my laptop screen
-    img2 = cv2.resize(img2, (800, 600))
-
-    #drawRectGrid(img2, color=(255, 255, 255), step=50)
-
-    cv2.imshow('bye', img2)
-    cv2.imwrite('backyard/'+image[0][0:-4]+'_M.jpg',img2)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
 # verifyPose(anglePerturbation=0)
 
 '''
