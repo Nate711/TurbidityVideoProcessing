@@ -173,6 +173,28 @@ Draws lines parallel to world x and y onto an image given the img and camera mat
 '''
 
 
+def drawRectGrid(img, color=(150, 150, 150), step=10):
+    # img = np.array(img,dtype='uint8')
+
+    xmax = img.shape[1]
+    ymax = img.shape[0]
+    x = np.arange(start=0, stop=xmax, step=step)
+    y = np.arange(start=0, stop=ymax, step=step)
+
+    for xi in x:
+        (x0, y0) = (xi, 0)
+        (x1, y1) = (xi, ymax)
+        cv2.line(img, (x0, y0), (x1, y1), color, 1, lineType=cv2.CV_AA)
+
+    for yi in y:
+        (x0, y0) = (0, yi)
+        (x1, y1) = (xmax, yi)
+        cv2.line(img, (x0, y0), (x1, y1), color, 1, lineType=cv2.CV_AA)
+
+        # (x0,y0) = np.array(homo2Rect(imageCoordinates((25,25,0,1),camMat)),dtype='int')
+        # cv2.circle(img,(x0,y0),25,(0,0,0),thickness=-1,lineType=cv2.CV_AA)
+
+
 def drawGPSGrid(img, camMat):
     # img = np.array(img,dtype='uint8')
     gmin, gmax = -500, 500
@@ -225,21 +247,24 @@ def drawCrossHair(img, center, size=10, color=(0, 0, 0), thickness=1):  # center
 Cycles through a bunch of different camera poses to verify that the image -> world coordinate algorithm works
 '''
 
+
 def nothing(x):
     pass
+
+
 def verifyPose(anglePerturbation=0):
     # camMat = readCameraMatrix('3D_I/P1')
     # print K,R,t
     cv2.namedWindow('image')
-    cv2.createTrackbar('bye','image',30,100,nothing)
+    cv2.createTrackbar('bye', 'image', 30, 100, nothing)
 
     K = np.array([[-1000, 1, 400], [0, -1000, 300], [0, 0, 1]])
     t = np.array([0, 0, -1000])
 
-    while(1):
-        theta = float(cv2.getTrackbarPos('bye','image'))/100.0 * math.pi
-        phi = theta*.05
-    #for theta in np.linspace(0, math.pi / 2 - .1, 15):
+    while (1):
+        theta = float(cv2.getTrackbarPos('bye', 'image')) / 100.0 * math.pi
+        phi = theta * .05
+        # for theta in np.linspace(0, math.pi / 2 - .1, 15):
 
         phi = theta * 0.5
 
@@ -295,7 +320,7 @@ def verifyPose(anglePerturbation=0):
 
         cv2.imshow('image', img)
         k = cv2.waitKey(1) & 0xFF
-        if k==27:
+        if k == 27:
             break
     cv2.destroyAllWindows()
 
@@ -383,7 +408,7 @@ def transformGroundPhoto(img, P):
     return img
 
 
-def getRotationMatrix3DYPR(yaw, pitch):  # this is incorrect
+def getRotationMatrix3DYPR(yaw, pitch, roll):  # this is incorrect
     # first rotation
     yawMat = np.array([[math.cos(yaw), -math.sin(yaw), 0], \
                        [math.sin(yaw), math.cos(yaw), 0], \
@@ -393,7 +418,12 @@ def getRotationMatrix3DYPR(yaw, pitch):  # this is incorrect
                          [0, math.cos(pitch), math.sin(pitch)], \
                          [0, -math.sin(pitch), math.cos(pitch)]])
 
+    rollMat = np.array([[math.cos(roll), 0, math.sin(roll)], \
+                       [0, 1, 0], \
+                       [-math.sin(roll), 0, math.cos(roll)]])
+
     R = np.dot(pitchMat, yawMat)
+    R = np.dot(rollMat, R)
     return R
 
 
@@ -402,8 +432,16 @@ imgNamesI = ['1726_p1_s.pgm', '1727_p1_s.pgm', '1728_p1_s.pgm', '1762_p1_s.pgm',
 imgNamesII = ['1726_p1_s1.pgm', '1727_p1_s1.pgm', '1728_p1_s1.pgm', '1762_p1_s1.pgm', '1763_p1_s1.pgm',
               '1764_p1_s1.pgm']
 # P = readCameraMatrix('3D_I/P1')
+backyardNames = np.array(['P0T0_5.jpg','P0T45.jpg','P30T0_5.jpg','P31T46.jpg','P41T0.jpg',\
+                          'P45T46.jpg','P51T180.jpg','P56T47.jpg','P56T314.jpg'])
+pitches = np.float32([0,0,30,31,41,45,51,56,56])
+thetas = np.float32([0.5,45,0.5,46,0,46,180,47,314])
 
-img = cv2.imread('GroundUD/T1P35_Undist.jpg')
+images = zip(backyardNames,pitches,thetas)
+print images
+
+# img = cv2.imread('GroundUD/T1P35_Undist.jpg')
+
 
 # print img.shape
 
@@ -411,30 +449,46 @@ img = cv2.imread('GroundUD/T1P35_Undist.jpg')
 K = np.array([[1.43231702e+03, 0.00000000e+00, 1.28269633e+03],
               [0.00000000e+00, 1.43306970e+03, 9.47284290e+02],
               [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
+# intrinsic for Olympus at 4/3 at 1200 x 900
+K = np.array([[1.00137397e+03, 0.00000000e+00, 5.84613792e+02],
+              [0.00000000e+00, 9.99010269e+02, 4.37792216e+02],
+              [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
 
-yaw = 1 * math.pi / 180
-pitch = 35 * math.pi / 180
-R = getRotationMatrix3DYPR(yaw=yaw, pitch=pitch)
+for image in images:
+    yaw = 314 * math.pi / 180
+    pitch = 56* math.pi / 180
+    roll = 0 * math.pi / 180
 
-# world center in camera coordinates
-# these units set the units for everything else. each pixel in the gps image will correspond to one unit (ie mm or m)
-C = np.array([0, 0, 300])
-t = -np.dot(R, C)
-print 'T (world center in camera coordinates): {}'.format(t)
-P = constructCameraMatrix(K, R, t)
-print 'Coordinates of spot in center of image: {}'.format(groundCoordinatesNew((0, 0), P))
+    print image
 
-img2 = transformGroundPhoto(img, P)
+    yaw = image[2]* math.pi / 180
+    pitch = image[1]* math.pi / 180
+    img = cv2.imread('../Calibration/OlympusUD/{}'.format(image[0]))
 
-# resize so i can display it properly on my laptop screen
-img2 = cv2.resize(img2, (1200, 900))
-'''
-cv2.imshow('bye', img2)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-'''
+    R = getRotationMatrix3DYPR(yaw=yaw, pitch=pitch, roll=roll)
 
-verifyPose(anglePerturbation=0)
+    # world center in camera coordinates
+    # these units set the units for everything else. each pixel in the gps image will correspond to one unit (ie mm or m)
+    # was using 300
+    C = np.array([0, 0, 200])
+    t = -np.dot(R, C)
+    print 'T (world center in camera coordinates): {}'.format(t)
+    P = constructCameraMatrix(K, R, t)
+    print 'Coordinates of spot in center of image: {}'.format(groundCoordinatesNew((0, 0), P))
+
+    img2 = transformGroundPhoto(img, P)
+
+    # resize so i can display it properly on my laptop screen
+    img2 = cv2.resize(img2, (800, 600))
+
+    #drawRectGrid(img2, color=(255, 255, 255), step=50)
+
+    cv2.imshow('bye', img2)
+    cv2.imwrite('backyard/'+image[0][0:-4]+'_M.jpg',img2)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+# verifyPose(anglePerturbation=0)
 
 '''
 # summary of problem:

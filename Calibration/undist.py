@@ -56,6 +56,14 @@ After calibraiton K:
  [  0.00000000e+00   0.00000000e+00   1.00000000e+00]]
  '''
 
+##########################################################
+# calibration for olympus 4/3 large @ 1200x900
+K = np.array([[  1.00137397e+03,   0.00000000e+00,   5.84613792e+02],
+       [  0.00000000e+00,   9.99010269e+02,   4.37792216e+02],
+       [  0.00000000e+00,   0.00000000e+00,   1.00000000e+00]])
+
+d = np.array([-0.06479054,  0.06082045, -0.00261849, -0.00353822, -0.06223935])
+
 ###########################################################################
 # calibration parameters from sample images from salem's blog
 ###########################################################################
@@ -97,7 +105,7 @@ for name in imgNames:
 	h, w = img.shape[:2]
 	# undistort
 	newcamera, roi = cv2.getOptimalNewCameraMatrix(K, d, (w,h), 0) 
-	print newcamera
+	#print newcamera
 	newimg = cv2.undistort(img, K, d, None, newcamera)
 	
 	# for samples
