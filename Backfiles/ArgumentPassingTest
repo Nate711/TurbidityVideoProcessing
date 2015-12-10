@@ -1,0 +1,16 @@
+import argparse
+import glob
+import os
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("--source", help="undistort images")
+parser.add_argument("--dest",help="save folder")
+
+args = parser.parse_args()
+print args.source
+print args.dest
+
+print glob.glob(args.dest)
+print os.listdir(args.dest)
+print os.path.isdir(args.dest)
