@@ -1,6 +1,5 @@
 import csv
 import math
-
 import cv2
 import numpy as np
 
@@ -13,14 +12,14 @@ def factorCameraMatrix(P):
     :param P:
     :return:
     """
-    K, R = linalg.rq(P[:, :3])
+    K, R = np.linalg.rq(P[:, :3])
     T = np.diag(np.sign(np.diag(K)))
-    if linalg.det(T) < 0:
+    if np.linalg.det(T) < 0:
         T[1, 1] *= -1
 
     K = np.dot(K, T)
     R = np.dot(T, R)
-    t = np.dot(linalg.inv(K), P[:, 3])  # this gives t not C
+    t = np.dot(np.linalg.inv(K), P[:, 3])  # this gives t not C
     return K, R, t
 
 
@@ -239,23 +238,9 @@ def drawGPSGrid(img, camMat):
         # cv2.circle(img,(x0,y0),25,(0,0,0),thickness=-1,lineType=cv2.CV_AA)
 
 
-def latLong(referencePt, dr):
-    """
-    Returns the latitude and longitude of a point in world coordinates dr using the set point latlong
-    :param referencePt:
-    :param dr:
-    :return:
-    """
-    rho = 6371000.0  # 6371km = radius of earth
-    dlat = dr[1] / rho
-    dlong = dr[0] / (rho * math.cos(referencePt[0] * math.pi / 180))
-
-    return (referencePt[0] + dlat, referencePt[1] + dlong)
-
-
 def drawCrossHair(img, center, size=10, color=(0, 0, 0), thickness=1):  # center in (x,y) format
     """
-    Draws a crosshair on an image
+    Draws a cross hair on an image
 
     :param img:
     :param center:
@@ -267,6 +252,10 @@ def drawCrossHair(img, center, size=10, color=(0, 0, 0), thickness=1):  # center
              lineType=cv2.CV_AA)
     cv2.line(img, (center[0] + size, center[1] - size), (center[0] - size, center[1] + size), color, thickness,
              lineType=cv2.CV_AA)
+
+
+def nothing():
+    pass
 
 
 def verifyPose(anglePerturbation=0):
@@ -347,8 +336,7 @@ def verifyPose(anglePerturbation=0):
 
 def gpsCoorImageMask():
     """
-    Kind of a work in progress but the goal is to map GPS coordinates onto an image
-
+    Deprecated
     """
     for (img, geom) in zip(imgNamesI, geomNames):  # img names and geom names are global vars -- bad!
         camMat = readCameraMatrix('3D_I/' + geom)
@@ -405,7 +393,50 @@ def scaleImageAboutCenterMatrix(img, scale):
     return M
 
 
+def latLong(referencePt, dr):
+    """
+    Returns the latitude and longitude of a point in world coordinates dr using the set point latlong
+    :param referencePt: GPS coordinates of reference point
+    :param dr: world coordinate offset (first index is x offset in meters, second index is y offset in meters)
+    :return: GPS coordinates of new point
+
+    Remember latitude is measured up/down from the equator, not down from the pole like in polar coordinates
+    """
+    rho = 6371000.0  # 6371km = radius of earth
+
+    # dr is essentially the length of an arc segment so the angle traced by dr is dr/rho
+    dlat = dr[1] / rho
+
+    # instead of dividing by rho, divide by r (top down projection of rho onto xy plane)
+    dlong = dr[0] / (rho * math.cos(referencePt[0] * math.pi / 180.0))
+
+    return (referencePt[0] + dlat, referencePt[1] + dlong)
+
+def worldCoordinates(referenceGPSPt,GPSPt):
+    """
+    :param referenceGPSPt: gps pt with alt = 0 that represents 0,0,0 in the world rect frame
+    :param GPSPt: the gps pt to map to world rect frame
+    :return: world rect frame coordinates in x,y,z
+    """
+    rho = 6371000.0
+    dlat = GPSPt[0] - referenceGPSPt[0]
+    dlong = GPSPt[1] - referenceGPSPt[1]
+
+    dy = dlat*rho
+
+    # r is the projection of rho onto the equatorial plane
+    r = math.cos(referenceGPSPt[0] * math.pi/180.0)
+    dx = dlong*r
+
+    z = GPSPt[2]
+    return (dx,dy,z)
+
 def transformGroundPhoto(img, P):
+    """
+    :param img: The image of the ground plane to orthorectify
+    :param P: The camera matrix
+    :return: The orthorectified image
+    """
     # print 'Size of input image: {}'.format(img.shape)
     height, width = img.shape[0:2]
     # print height,width
@@ -422,9 +453,15 @@ def transformGroundPhoto(img, P):
     M = np.dot(T, H)
 
     # warp the image
-    img = cv2.warpPerspective(img, M, (width, height))  # kind of strange you do width,height and not height,width
+    img = cv2.warpPerspective(img, M, (width, height))  # kind of strange to do width,height and not height,width
 
     return img
+
+
+def transformGroundPhoto(img, K, R, c):
+    t = -np.dot(R, c)
+    P = constructCameraMatrix(K, R, t)
+    return transformGroundPhoto(img, P)
 
 
 def getRotationMatrix3DYPR(yaw, pitch, roll):  # this is incorrect
@@ -446,7 +483,12 @@ def getRotationMatrix3DYPR(yaw, pitch, roll):  # this is incorrect
     return R
 
 
-def mapBackyard():
+def mapBackyard(writeImages=False):
+    """
+    :param writeImages: boolean, tells whether to write rectified images to disk or not
+    :return: nothing
+    Orthorectifies and displays images from my yard
+    """
     # P = readCameraMatrix('3D_I/P1')
     backyardNames = np.array(['P0T0_5.jpg', 'P0T45.jpg', 'P30T0_5.jpg', 'P31T46.jpg', 'P41T0.jpg', \
                               'P45T46.jpg', 'P51T180.jpg', 'P56T47.jpg', 'P56T314.jpg'])
@@ -463,7 +505,7 @@ def mapBackyard():
     for image in images:
         yaw = image[2] * math.pi / 180
         pitch = image[1] * math.pi / 180
-        img = cv2.imread('../Calibration/OlympusUD/{}'.format(image[0]))
+        img = cv2.imread('OlympusUD/{}'.format(image[0]))
 
         R = getRotationMatrix3DYPR(yaw=yaw, pitch=pitch, roll=0)
 
@@ -484,8 +526,18 @@ def mapBackyard():
         # resize so i can display it properly on my laptop screen
         img2 = cv2.resize(img2, (800, 600))
 
-        cv2.imshow('bye', img2)
-        cv2.imwrite('backyard/' + image[0][0:-4] + '_M.jpg', img2)
+        # display original photo
+        cv2.namedWindow('Original')
+        cv2.moveWindow('Original', 800, 0)
+        imgResized = cv2.resize(img, (800, 600))
+        cv2.imshow('Original', imgResized)
+
+        # show transformed photo
+        cv2.namedWindow('Map')
+        cv2.imshow('Map', img2)
+
+        if writeImages:
+            cv2.imwrite('backyard/' + image[0][0:-4] + '_M.jpg', img2)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
@@ -500,9 +552,27 @@ imgNamesII = ['1726_p1_s1.pgm', '1727_p1_s1.pgm', '1728_p1_s1.pgm', '1762_p1_s1.
 K = np.array([[1.43231702e+03, 0.00000000e+00, 1.28269633e+03],
               [0.00000000e+00, 1.43306970e+03, 9.47284290e+02],
               [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
+
 # verifyPose(anglePerturbation=0)
 
+mapBackyard(writeImages=False)
+
 '''
-# summary of problem:
-I think everything is working??
+Use Case
+
+Micasense:
+1. Measure K for rededge
+2. Record gimbal orientation
+3. Turn rededge images into readable format with GPS coordinates
+4. Choose a GPS coordinate as the world center
+5. For each image:
+    5.1 Find world rect coordinates of the camera center using the worldCoordinates() method
+    5.1 Use transformGroundPhoto() method to orthorectify image using K, gimbal orientation, and world rect coordinate
+6. Run through data set and find pixel neighborhood surrounding each water measurement
+7. Math it out and analyze!
+
+Dual GoPro
+1. Combine images and combine channels
+2. Attach GPS coordinates to images by matching time logs
+3. Follow the steps for Micasense
 '''
